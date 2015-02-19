@@ -8,6 +8,39 @@ import constants
 import db
 import log
 
+""" IP Allocation in two steps with retries.
+
+This algorith uses the same data structutes as the one based on locking
+database queries. There is a table for storing IP Requests, where
+(ip_address, subnet_id) is the primary key and a table for keeping track
+of availability ranges.
+
+However, this algorithm does not lock the availability ranges while the
+updates are carried out. This means that primary key and unique indexes
+violations are tolerated and dealt with both while creating the IP
+request and adjusting availability ranges.
+As multiple IP requests on the same subnet can be concurently committed,
+the process for adjusting available range must be aware of this condition.
+The routine presented takes into account the fact that multiple IP address
+might be ready to be removed from IP avaiability ranges at a given time,
+and that some other thread or process might have already taken care of the
+IP address the routine is trying to adjust availability ranges for.
+In a way, the solution adopted by this algorithm to adjust availability
+ranges is idempotent.
+
+The algorithm is presented in four flavours:
+    - sequential allocation, range check
+    Perform sequential allocation and check whether the IP has been removed
+    from IP availability ranges before retrying
+    - sequential allocation, no range check
+    Perform sequential allocation, retry without checking if some other process
+    removed the IP from the ranges
+    - random allocation, range check
+    Instead of performing sequential allocation, pick a random address from pools
+    - random allocation, no range check
+    Pick random allocation from pools, and then behave as the corresponding
+    sequential algorithm
+"""
 
 def run_with_range_check(*args, **kwargs):
     kwargs['verify_ranges'] = True
