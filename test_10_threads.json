@@ -1,0 +1,10 @@
+{"t01": {"steps_wait": {"request": 245, "av_ranges": 400}},
+ "t02": {"steps_wait": {"request": 240, "av_ranges": 400}},
+ "t03": {"steps_wait": {"request": 235, "av_ranges": 400}},
+ "t04": {"steps_wait": {"request": 230, "av_ranges": 400}},
+ "t05": {"steps_wait": {"request": 225, "av_ranges": 400}},
+ "t06": {"steps_wait": {"request": 220, "av_ranges": 400}},
+ "t07": {"steps_wait": {"request": 215, "av_ranges": 400}},
+ "t08": {"steps_wait": {"request": 210, "av_ranges": 400}},
+ "t09": {"steps_wait": {"request": 205, "av_ranges": 400}},
+ "t10": {"steps_wait": {"request": 200, "av_ranges": 400}}}

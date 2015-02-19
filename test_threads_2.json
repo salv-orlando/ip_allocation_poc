@@ -1,0 +1,5 @@
+{"t1": {"steps_wait": {"request": 200, "av_ranges": 390}},
+ "t2": {"steps_wait": {"request": 200, "av_ranges": 400},
+        "ip_address": "192.168.0.100"},
+ "t3": {"steps_wait": {"request": 200, "av_ranges": 410},
+        "ip_address": "192.168.0.200"}}

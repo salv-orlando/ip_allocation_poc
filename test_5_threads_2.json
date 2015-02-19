@@ -1,0 +1,5 @@
+{"t01": {"steps_wait": {"request": 1200, "av_ranges": 0}},
+ "t02": {"steps_wait": {"request": 900, "av_ranges": 300}},
+ "t03": {"steps_wait": {"request": 600, "av_ranges": 600}},
+ "t04": {"steps_wait": {"request": 300, "av_ranges": 900}},
+ "t05": {"steps_wait": {"request": 0, "av_ranges": 1200}}}
