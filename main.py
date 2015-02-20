@@ -43,6 +43,10 @@ if len(sys.argv) > 3:
     thread_desc = sys.argv[3]
 else:
     thread_desc = 'test_threads.json'
+
+subnet_id = None
+if len(sys.argv) > 4:
+    subnet_id = sys.argv[4]
 algorithm = sys.argv[2]
 db.set_av_range_model(algorithm)
 db.set_ip_request_model(algorithm)
@@ -65,12 +69,15 @@ db.BASE.metadata.create_all(engine)
 session = db.get_session(sql_connection)
 
 # Create a subnet
-subnet = subnet_create_func[algorithm](
-    session, str(uuid.uuid4()), '192.168.0.0/24', 4,
-    [{'start': '192.168.0.2', 'end': '192.168.0.254'}])
-subnet_id = subnet['id']
-LOG.debug("Created subnet with id:%s", subnet_id)
-
+if not subnet_id:
+    subnet = subnet_create_func[algorithm](
+        session, str(uuid.uuid4()), '192.168.0.0/24', 4,
+        [{'start': '192.168.0.2', 'end': '192.168.0.254'}])
+    subnet_id = subnet['id']
+    LOG.info("Created subnet with id:%s", subnet_id)
+else:
+    subnet = session.query(db.Subnet).filter_by(id=subnet_id).one()
+    LOG.info("Loaded subnet with id:%s", subnet_id)
 
 threads = []
 for thread_name in threads_data:
