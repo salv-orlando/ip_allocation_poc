@@ -6,6 +6,21 @@ import constants
 import db
 import log
 
+""" Locking IP allocation algorithm
+
+This algorithm simply locks the availability ranges for a subnet until the
+IP allocation process is complete. It does so leveraging SELECT...FOR UPDATE
+queries.
+
+In single master mode this simply means IP allocation is a serial process.
+In multi master mode every the database lock is enforced only at node level.
+Therefore IP allocation might happen concurrently on different replicas.
+This situation will lead to conflicts which are signalled by SqlAlchemy as
+database deadlock errors.
+When this error occurr, the transaction should be retried. Methods such as
+exponential backoff can signfigicantly reduce the chance of conflict.
+
+"""
 
 def run(*args, **kwargs):
     sql_connection = args[0]
@@ -49,6 +64,7 @@ def allocate_ip(session, logger, subnet_id, ip_address=None, sleep_time=0):
                         transaction_abort='attempt-%d' % attempt)
             raise
         except db_exc.DBDeadlock as deadlock_exc:
+            # TODO: exponential backoff
             logger.info("Abort - attempt %d", attempt,
                         transaction_abort='attempt-%d' % attempt)
             logger.warning("Transaction aborted because of deadlock "
