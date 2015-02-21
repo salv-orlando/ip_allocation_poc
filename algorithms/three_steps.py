@@ -177,7 +177,7 @@ def recycle_ip_request(session, subnet_id, all_pool_id, ip_address,
         ip_request_query = session.query(db.IPRequest).filter(
             db.IPRequest.expiration < now).filter_by(
             subnet_id=subnet_id,
-            allocation_pool_id=allocation_pool_id,
+            allocation_pool_id=all_pool_id,
             ip_address=ip_address,
             status=RECYCLABLE)
         ip_request_query.update(

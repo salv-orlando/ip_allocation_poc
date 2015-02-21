@@ -48,6 +48,7 @@ else:
 subnet_id = None
 if len(sys.argv) > 4:
     subnet_id = sys.argv[4]
+
 algorithm = sys.argv[2]
 db.set_av_range_model(algorithm)
 db.set_ip_request_model(algorithm)
