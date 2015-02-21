@@ -170,13 +170,6 @@ def store_ip_request(session, subnet_id, all_pool_id, ip_address, seq_no=None):
     return timestamp, unique_id
 
 
-def get_ip_requests(session, subnet_id, status):
-    ip_request_query = session.query(db.IPRequest).filter_by(
-        subnet_id=subnet_id,
-        status=status)
-    return [ip_req['ip_address'] for ip_req in ip_request_query]
-
-
 def recycle_ip_request(session, subnet_id, all_pool_id, ip_address,
                        seq_no=None):
     now = datetime.datetime.utcnow()
@@ -267,9 +260,9 @@ def confirm_ip_request(session, subnet_id, all_pool_id, ip_address,
 
 
 def verify_correctness(session, subnet_id):
-    recyclable_ips = get_ip_requests(session, subnet_id, RECYCLABLE)
-    requested_ips = get_ip_requests(session, subnet_id, REQUESTED)
-    allocated_ips = get_ip_requests(session, subnet_id, ALLOCATED)
+    recyclable_ips = db.get_ip_requests(session, subnet_id, RECYCLABLE)
+    requested_ips = db.get_ip_requests(session, subnet_id, REQUESTED)
+    allocated_ips = db.get_ip_requests(session, subnet_id, ALLOCATED)
     print("The process left behind %d RECYCLABLE IPs", len(recyclable_ips))
     if len(requested_ips):
         print("Found %d ip requests in status REQUESTED. There should be none",

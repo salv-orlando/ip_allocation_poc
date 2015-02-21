@@ -344,6 +344,13 @@ def create_subnet(session, subnet_id, cidr, ip_version,
     return subnet
 
 
+def get_ip_requests(session, subnet_id, status):
+    ip_request_query = session.query(IPRequest).filter_by(
+        subnet_id=subnet_id,
+        status=status)
+    return [ip_req['ip_address'] for ip_req in ip_request_query]
+
+
 def _check_unique_ip(session, subnet_id, ip_address):
     """Validate that the IP address on the subnet is not in use."""
     ip_qry = session.query(IPRequest)

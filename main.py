@@ -33,6 +33,7 @@ subnet_create_func = {
     '3-step-rnd': db.create_subnet}
 
 success_funcs = {
+    'lock-for-update': db_lock.verify_correctness,
     '3-step': three_steps.verify_correctness,
     '3-step-rnd': three_steps.verify_correctness}
 

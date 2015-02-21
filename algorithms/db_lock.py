@@ -26,21 +26,53 @@ def run(*args, **kwargs):
 
 def allocate_ip(session, logger, subnet_id, ip_address=None, sleep_time=0):
     # sleep before creating ip request
-    time.sleep(sleep_time)
-    try:
-        with session.begin():
-            if ip_address:
-                db._verify_ip(session, subnet_id, ip_address)
-            else:
-                ip_address = db._locking_generate_ip(
-                    session, subnet_id, logger)
-            ip_request = db.IPRequest(
-                subnet_id=subnet_id,
-                ip_address=ip_address,
-                status='ALLOCATED')
-            session.add(ip_request)
-    except db_exc.DBDuplicateEntry as dup_exc:
-        logger.info("Abort at phase 1 - attempt %d", attempt,
-                    transaction_abort='p1-attempt-%d' % attempt)
-        raise
+    attempt = 0
+    while attempt < constants.MAX_ATTEMPTS:
+        time.sleep(sleep_time)
+        try:
+            logger.info("Starting attempt: %d", attempt,
+                        transaction_start='attempt-%d' % attempt)
+            with session.begin():
+                if ip_address:
+                    db._verify_ip(session, subnet_id, ip_address)
+                else:
+                    ip_address = db._locking_generate_ip(
+                        session, subnet_id, logger)
+                ip_request = db.IPRequest(
+                    subnet_id=subnet_id,
+                    ip_address=ip_address,
+                    status='ALLOCATED')
+                session.add(ip_request)
+                logger.info("Marking %s as ALLOCATED", ip_address)
+        except db_exc.DBDuplicateEntry as dup_exc:
+            logger.info("Abort - attempt %d", attempt,
+                        transaction_abort='attempt-%d' % attempt)
+            raise
+        except db_exc.DBDeadlock as deadlock_exc:
+            logger.info("Abort - attempt %d", attempt,
+                        transaction_abort='attempt-%d' % attempt)
+            logger.warning("Transaction aborted because of deadlock "
+                           "error, retrying")
+            ip_address = None
+            attempt = attempt + 1
+        # If we are here the operation was successful
+        logger.info("Commit - attempt %d", attempt,
+                    transaction_commit='attempt-%d' % attempt)
+        break
     return ip_address
+
+
+def verify_correctness(session, subnet_id):
+    allocated_ips = db.get_ip_requests(session, subnet_id, 'ALLOCATED')
+    print("")
+    print("Allocated IP Addresses:")
+    print("-----------------------")
+    for ip_address in allocated_ips:
+        print ip_address
+    print("")
+    len_diff = len(allocated_ips) - len(set(allocated_ips))
+    if len_diff:
+        print("There are %d duplicates in allocated IPs."
+              "This is bad" % len_diff)
+        return False
+    return True
