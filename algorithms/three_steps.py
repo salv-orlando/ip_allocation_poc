@@ -11,6 +11,78 @@ import db
 import log
 import test_exceptions as ipam_exc
 
+""" Non blocking, lock free algorithm for IP allocation.
+
+This algorithm enables concurrent processes to allocate IP addresses without
+relying either on primary keys or database-level locks.
+
+Its process can be summarized as follows:
+1) Select an available IP address from the subnet's CIDR and
+   store an IP request for that address.
+2) Verify the requested address has not been already allocated
+3) Attempt to allocate the address and bully potential concurrent
+   processes out of allocating the same address.
+
+Phase 1 - IP address selection
+-------------------------------
+In this step a process picks an IP address. Two strategies are provided:
+sequential and random.
+-> Sequential strategy: The process tries to use a new address in the subnet's
+address space. This is done with a LIMIT 1 query, and use of indexes make this
+query fairly efficient. If that fails the process select the first IP address
+marked as RECYCLABLE. (Note that the algorithm in its current form might also
+pick a RECYCLABLE address which is actually ALLOCATED, thus wasting time, but
+should be fairly easy to fix).
+-> Random strategy: The process pick a random address in the subnet's address
+space. If no ALLOCATED or REQUESTED IP request exists for that address the
+address is selected. Otherwise the process is repeated.
+
+Once an IP address is selected, an IP request is created with state REQUESTED.
+Each IP request has a unique identifier and a request timestamp.
+The transaction if committed to the database.
+
+Phase 2 - Verify concurrent IP allocations
+-------------------------------------------
+In this phase the algorithm verifies whether it is ok to proceed to mark the
+IP request as allocated. To this aim it verifies that:
+    1) No other IP request for the same address is allocated
+    2) No other IP request for the same address in REQUESTED state has a
+       lower timestamp
+If the criteria above are satisfied, the algorithm proceeds to mark the state
+of the IP request as allocated.
+However, because in phase 3 (see below) the algorithm applies a technique
+similar to that of the bully algorithm to put off other pretenders, there is
+a chance the update query does not actually update any data.
+In this case the transaction is aborted and the algorithm returns to step 1.
+After abort the IP request is moved to the RECYCLABLE state (note: it should
+probably be better to delete it).
+If the update to allocated is successful, the transaction is committed.
+
+Phase 3 - Bully other pretenders
+-----------------------------------
+In this phase the algorithm first checks that no other transaction updated
+the current request's timestamp, and then proceeds to update all other
+requests' timestamps with its own timestamp, pretty much like the bully
+algorithm does when a process decides to become the leader.
+If that query manages to update the timestamps for all the other requests,
+then we can rest assured that no other process can successfully claim the
+selected IP address and the algorithm concludes.
+
+If step 2 or 3 fail, the algorithm starts again from step 1, until a maximum
+number of attempts is reached. In the current form of the algorithm, there is
+a risk of starvation, as a process in theory might always be bullied out and
+give up its IP address request. This could be fixed by reusing IP request
+timestamps and by implementing exponential backoff strategies.
+
+Another drawback is that, especially with sequential allocation, the
+chances of conflict in this algorithm are quite high, and therefore it could
+leave behind a certain number of IP requests in RECYCLABLE state.
+Also, sequential IP allocation might not be really sequential. Indeed,
+assuming a cidr of 192.168.0.0/24 and 2 concurrent process, it is possible
+that two processese will allocate 192.168.0.2 and 192.168.0.3, skipping
+192.168.0.1.
+"""
+
 REQUESTED = 'REQUESTED'
 ALLOCATED = 'ALLOCATED'
 RECYCLABLE = 'RECYCLABLE'
@@ -59,7 +131,6 @@ def _run(*args, **kwargs):
                 session, subnet)
         thread_log.info("Selected IP address:%s", ip_address,
                         event="ip_select")
-        # Phase 2 - Create IP request
         if unique_ts:
             recycle_ip_request(session, subnet_id,
                                all_pool_id, ip_address, seq_no)
@@ -69,7 +140,7 @@ def _run(*args, **kwargs):
                 ip_address, seq_no)
         thread_log.info("Stored request for IP:%s with timestamp:%d",
                         ip_address, unique_ts, event='ip_request_store')
-        # Phase 3 - Confirm request and solve contention
+        # Phase 2, 3 - Confirm request and solve contention
         try:
             confirm_ip_request(session, subnet_id, all_pool_id,
                                ip_address, unique_ts, unique_id, thread_log)
