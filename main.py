@@ -13,6 +13,8 @@ from algorithms import three_steps
 import db
 import log
 
+RESULT_FILE = 'results.json'
+
 thread_logs = []
 algorithms = {
     'lock-for-update': db_lock.run,
@@ -136,6 +138,8 @@ success = None
 if success_func:
     success = success_func(session, subnet_id)
 
+
+exp_result = {'success': success}
 print("The execution was successful:%s" % success)
 print("Total failed threads:%d" % failures)
 print("Mean retries per thread:%.3f" % numpy.mean(attempts))
@@ -144,27 +148,44 @@ print("Mean thread run time:%.3f" % numpy.mean(exec_times))
 print("Thread run time variance:%.3f" % numpy.var(exec_times))
 print("")
 
+if success:
+    exp_result['AVG_THR_RETRIES'] = numpy.mean(attempts)
+    exp_result['VAR_THR_RETRIES'] = numpy.var(attempts)
+    exp_result['AVG_THR_TIME'] = numpy.mean(exec_times)
+    exp_result['VAR_THR_TIME'] = numpy.var(exec_times)
+
+
+def query_stats(sql_verb):
+    print("%s statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
+          (sql_verb,
+           len(db.query_stats[sql_verb]),
+           sum(db.query_stats[sql_verb]),
+           numpy.mean(db.query_stats[sql_verb]),
+           numpy.var(db.query_stats[sql_verb])))
+    if not success:
+        return
+    exp_result['NUM_%s' % sql_verb] = len(db.query_stats[sql_verb])
+    exp_result['TIME_%s' % sql_verb] = sum(db.query_stats[sql_verb])
+    exp_result['AVG_%s' % sql_verb] = numpy.mean(db.query_stats[sql_verb])
+    exp_result['VAR_%s' % sql_verb] = numpy.var(db.query_stats[sql_verb])
+
 if 'SELECT' in db.query_stats:
-    print("SELECT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-        (len(db.query_stats['SELECT']),
-        sum(db.query_stats['SELECT']),
-        numpy.mean(db.query_stats['SELECT']),
-        numpy.var(db.query_stats['SELECT'])))
+    query_stats('SELECT')
 if 'INSERT' in db.query_stats:
-    print("INSERT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-        (len(db.query_stats['INSERT']),
-        sum(db.query_stats['INSERT']),
-        numpy.mean(db.query_stats['INSERT']),
-        numpy.var(db.query_stats['INSERT'])))
+    query_stats('INSERT')
 if 'UPDATE' in db.query_stats:
-    print("UPDATE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-      (len(db.query_stats['UPDATE']),
-       sum(db.query_stats['UPDATE']),
-       numpy.mean(db.query_stats['UPDATE']),
-       numpy.var(db.query_stats['UPDATE'])))
+    query_stats('UPDATE')
 if 'DELETE' in db.query_stats:
-    print("DELETE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-        (len(db.query_stats['DELETE']),
-        sum(db.query_stats['DELETE']),
-        numpy.mean(db.query_stats['DELETE']),
-        numpy.var(db.query_stats['DELETE'])))
+    query_stats('DELETE')
+
+# Read results file and add data for this execution
+# The line below might be buggy but I don't care
+test_name = "%s-%s" % (thread_desc.split('.')[-2], algorithm)
+try:
+    results = json.load(open(RESULT_FILE))
+except (ValueError, IOError):
+    results = {}
+test_results = results.get(test_name, [])
+test_results.append(exp_result)
+results[test_name] = test_results
+json.dump(results, open(RESULT_FILE, 'w'))
