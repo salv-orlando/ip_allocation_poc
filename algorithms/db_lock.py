@@ -75,7 +75,8 @@ def allocate_ip(session, logger, subnet_id, ip_address=None, sleep_time=0):
         logger.info("Commit - attempt %d", attempt,
                     transaction_commit='attempt-%d' % attempt)
         break
-    return ip_address
+
+    thread_log.attempts = attempt
 
 
 def verify_correctness(session, subnet_id):

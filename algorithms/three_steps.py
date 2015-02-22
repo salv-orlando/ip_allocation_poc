@@ -159,6 +159,8 @@ def _run(*args, **kwargs):
             ip_address = None
             attempt = attempt + 1
 
+    thread_log.attempts = attempt
+
 
 def find_ip_address(session, subnet):
     for all_pool in subnet.allocation_pools:
