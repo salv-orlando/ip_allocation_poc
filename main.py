@@ -136,30 +136,35 @@ success = None
 if success_func:
     success = success_func(session, subnet_id)
 
-print("#OUTCOME The execution was successful:%s" % success)
-print("#TRH_FAIL Total failed threads:%d" % failures)
-print("#THR_RETR_MEAN Mean retries per thread:%.3f" % numpy.mean(attempts))
-print("#THR_RETR_VAR Retries per thread variance:%.3f" % numpy.var(attempts))
-print("#THR_TIME_MEAN Mean thread run time:%.3f" % numpy.mean(exec_times))
-print("#THR_TIME_VAR Thread run time variance:%.3f" % numpy.var(exec_times))
+print("The execution was successful:%s" % success)
+print("Total failed threads:%d" % failures)
+print("Mean retries per thread:%.3f" % numpy.mean(attempts))
+print("Retries per thread variance:%.3f" % numpy.var(attempts))
+print("Mean thread run time:%.3f" % numpy.mean(exec_times))
+print("Thread run time variance:%.3f" % numpy.var(exec_times))
 print("")
-print("#SELECT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-      (len(db.query_stats['SELECT']),
-       sum(db.query_stats['SELECT']),
-       numpy.mean(db.query_stats['SELECT']),
-       numpy.var(db.query_stats['SELECT'])))
-print("#INSERT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-      (len(db.query_stats['INSERT']),
-       sum(db.query_stats['INSERT']),
-       numpy.mean(db.query_stats['INSERT']),
-       numpy.var(db.query_stats['INSERT'])))
-print("#UPDATE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
+
+if 'SELECT' in db.query_stats:
+    print("SELECT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
+        (len(db.query_stats['SELECT']),
+        sum(db.query_stats['SELECT']),
+        numpy.mean(db.query_stats['SELECT']),
+        numpy.var(db.query_stats['SELECT'])))
+if 'INSERT' in db.query_stats:
+    print("INSERT statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
+        (len(db.query_stats['INSERT']),
+        sum(db.query_stats['INSERT']),
+        numpy.mean(db.query_stats['INSERT']),
+        numpy.var(db.query_stats['INSERT'])))
+if 'UPDATE' in db.query_stats:
+    print("UPDATE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
       (len(db.query_stats['UPDATE']),
        sum(db.query_stats['UPDATE']),
        numpy.mean(db.query_stats['UPDATE']),
        numpy.var(db.query_stats['UPDATE'])))
-print("#DELETE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
-      (len(db.query_stats['DELETE']),
-       sum(db.query_stats['DELETE']),
-       numpy.mean(db.query_stats['DELETE']),
-       numpy.var(db.query_stats['DELETE'])))
+if 'DELETE' in db.query_stats:
+    print("DELETE statements:%d - total:%.5f - mean:%.5f - var:%.5f" %
+        (len(db.query_stats['DELETE']),
+        sum(db.query_stats['DELETE']),
+        numpy.mean(db.query_stats['DELETE']),
+        numpy.var(db.query_stats['DELETE'])))

@@ -336,7 +336,7 @@ def verify_correctness(session, subnet_id):
     recyclable_ips = db.get_ip_requests(session, subnet_id, RECYCLABLE)
     requested_ips = db.get_ip_requests(session, subnet_id, REQUESTED)
     allocated_ips = db.get_ip_requests(session, subnet_id, ALLOCATED)
-    print("The process left behind %d RECYCLABLE IPs", len(recyclable_ips))
+    print("The process left behind %d RECYCLABLE IPs" % len(recyclable_ips))
     if len(requested_ips):
         print("Found %d ip requests in status REQUESTED. There should be none",
               len(requested_ips))
