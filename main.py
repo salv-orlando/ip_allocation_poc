@@ -36,6 +36,10 @@ subnet_create_func = {
 
 success_funcs = {
     'lock-for-update': db_lock.verify_correctness,
+    '2-step-seq-range-check': twostep.verify_correctness,
+    '2-step-seq-no-range-check': twostep.verify_correctness,
+    '2-step-rnd-range-check': twostep.verify_correctness,
+    '2-step-rnd-no-range-check': twostep.verify_correctness,
     '3-step': three_steps.verify_correctness,
     '3-step-rnd': three_steps.verify_correctness}
 

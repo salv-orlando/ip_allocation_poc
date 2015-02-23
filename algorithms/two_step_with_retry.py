@@ -222,3 +222,8 @@ def adjust_av_ranges(session, logger, subnet_id, ip_address=None,
                     event='phase2-end',
                     transaction_commit='p2-attempt-%d' % attempt)
         return attempt
+
+
+def verify_correctness(session, subnet_id):
+    # TODO: everything
+    return True
