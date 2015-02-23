@@ -6,7 +6,7 @@ RESULT_FILE = 'results.json'
 
 results = json.load(open(RESULT_FILE))
 
-for test_name in results:
+for test_name in sorted(results):
     experiments = results[test_name]
     avg_thr_times = [exp['AVG_THR_TIME'] for exp in experiments
                      if exp['success']]
